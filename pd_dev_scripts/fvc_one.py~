@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+
+# args are: exposuretime, led_current, duty_cycle
+
+import numpy as np
+import matplotlib.pyplot as plt
+import Pyro4
+import sys,os,time
+
+from DOSlib.application import Application
+from DOSlib.discovery import discoverable
+from DOSlib.util import dos_parser
+from DOSlib.advertise import Seeker
+
+exptime = float(sys.argv[1])
+ledcurrent = float(sys.argv[2])
+dutycycle = float(sys.argv[3])
+
+data_dir = "/data/fvc/"
+
+#Identify the Applications
+role1 = 'ILLUMINATOR'
+role2 = 'FVC'
+role3 = 'PC0'
+led = None
+fvc = None
+pc0 = None
+
+s = Seeker('-dos-','DOStest')
+while led == None:
+    s.seek()
+    if role1 in s.devices:
+        led = Pyro4.Proxy(s.devices[role1]['pyro_uri'])
+        print('ILLUMINATOR connected')
+    else:
+        print('Not connecting to the ILLUMINATOR application')
+    time.sleep(1)
+    
+while fvc == None:
+    s.seek()
+    if role2 in s.devices:
+        fvc = Pyro4.Proxy(s.devices[role2]['pyro_uri'])
+        print('FVC connected')
+    else:
+        print('Not connecting to the FVC application')
+    time.sleep(1)
+
+ss = Seeker('-dos-','PetalControl')
+while pc0 == None:
+    ss.seek()
+    if role3 in ss.devices:
+        pc0 = Pyro4.Proxy(ss.devices[role3]['pyro_uri'])
+        print('PC0 connected')
+    else:
+        print('Not connecting to the PC0 application')
+    time.sleep(1)
+
+def flux(mag):
+    return 10**(-0.4*(mag-25))
+
+def calc_mag(red_file):
+    data = np.genfromtxt(red_file,usecols=(0,1,2,3,4,5))
+    pinholes = []
+    fibers = []
+    for row in data:
+        if row[4] == 3.0:
+            pinholes.append(row[3])
+        elif row[4] == 5.0:
+            fibers.append(row[3])
+
+    pinhole_avg = np.mean(pinholes)
+    fibers_avg = np.mean(fibers)
+    pinhole_std = np.std(pinholes)
+    fibers_std = np.std(fibers) 
+    pinhole_flux = flux(pinhole_avg)
+    fibers_flux = flux(fibers_avg)
+    return (pinhole_flux,pinhole_avg,pinhole_std,fibers_flux,fibers_avg,fibers_std) 
+
+dc_red_files = {}
+
+fvc.set(exptime=exptime)
+t = fvc.get('exptime')
+led.set(channel=1)
+led.set(led='off')
+pc0.set_fiducial(20000,0)
+print('Everything is turned off')
+error = fvc.calibrate_bias(0)
+if error == 'SUCCESS':
+    print('Background image taken successfully')
+else:
+    print('Bias image was not taken')
+
+print("Exposure time is set to %f" % float(t))
+
+led.set(channel=1)
+led.set(current=ledcurrent)
+led.set(led='on')
+
+pc0.set_fiducial(20000,dutycycle)
+if dutycycle <= 50:
+    pc0.set_fiducial(1114,dutycycle*2)
+else:
+    pc0.set_fiducial(1114,100)
+
+#FVC commands
+retcode = fvc.calibrate_image()
+if retcode == 'SUCCESS':
+    print("Autotune was successful")
+    measure = fvc.measure()
+    if type(measure) == dict:
+        file = fvc.get('image_name')
+        print(file)
+        filen = os.path.splitext(file)[0]+'.red'
+        print("Copying over reduced file: ")
+        os.system("scp msdos@desifvc.kpno.noao.edu:%s ." % (data_dir+'/'+filen))
+        dc_red_files[dutycycle] = filen
+    else:
+        print(measure)
+else:
+    print(retcode)
+
+for key,value in dc_red_files.items():
+    pinhole_flux,pinhole_avg,pinhole_std,fibers_flux,fibers_avg,fibers_std=calc_mag(value) 
+    print("For duty cycle %d and led current %d, we are getting a pinhole flux %f and fiber flux %f" % (key,ledcurrent,pinhole_flux,fibers_flux))

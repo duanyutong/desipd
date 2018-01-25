@@ -1,0 +1,94 @@
+import numpy as np
+import time
+import Pyro4
+import sys,os
+
+from DOSlib.application import Application
+from DOSlib.discovery import discoverable
+from DOSlib.util import dos_parser
+from DOSlib.advertise import Seeker
+
+"""
+Script to turn off lights, take calibration image, turn lights back on, and then take calibrate_image and measure to make sure everything is working
+
+"""
+#Fiducials that need to be turned off
+bad_fids = []
+bad_zero = []
+#Fiducials that need to be brighter than usual
+dim_fid = 1114
+
+etime = 2.0
+led_current = 20.
+fid_dc = 50
+data_dir = '/data/fvc/'
+
+role1 = 'ILLUMINATOR'
+role2 = 'FVC'
+role3 = 'PC0'
+led = None
+fvc = None
+pc0 = None
+
+#Identify Applications
+s = Seeker('-dos-','DOStest')
+while led == None:
+    s.seek()
+    if role1 in s.devices:
+        led = Pyro4.Proxy(s.devices[role1]['pyro_uri'])
+        print('ILLUMINATOR connected')
+    time.sleep(1)
+    
+while fvc == None:
+    s.seek()
+    if role2 in s.devices:
+        fvc = Pyro4.Proxy(s.devices[role2]['pyro_uri'])
+        print('FVC connected')
+    else:
+        print('Not connecting to anything using Pyro')
+    time.sleep(1)
+
+ss = Seeker('-dos-','PetalControl')
+while pc0 == None:
+    ss.seek()
+    if role3 in ss.devices:
+        pc0 = Pyro4.Proxy(ss.devices[role3]['pyro_uri'])
+        print('PC0 connected')
+
+#Calibration Sequence
+#led.set(channel=2)
+#led.set(led='off')
+#led.set(channel=3)
+#led.set(led='off')
+#led.set(channel=4)
+#led.set(led='off')
+led.set(channel=1)
+led.set(led='off')
+pc0.set_fiducial(20000,0)
+print('Everything is turned off')
+error = fvc.calibrate_bias(0)
+if error == 'SUCCESS':
+    print('Background image taken successfully')
+else:
+    print('Bias image was not taken')
+
+
+led.set(channel=1)
+led.set(current=led_current)
+led.set(led='on')
+pc0.set_fiducial(20000,fid_dc)
+pc0.set_fiducial(dim_fid,100)
+pc0.set_fiducials(bad_fids,bad_zero)
+print('Fiducials and fibers turned back on')
+error = fvc.calibrate_image()
+if error == 'SUCCESS':
+    print('Autotune successful')
+else:
+    print('Autotune not successful')
+
+measure = fvc.measure()
+print(measure)
+if type(measure) == dict:
+    print("Calibration was successful")
+else:
+    print('Measure was not successful')

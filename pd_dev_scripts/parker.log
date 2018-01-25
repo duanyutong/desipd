@@ -1,0 +1,48 @@
+Executing commands in /software/DervishTools/products/dervish-5625/etc/dervishStartup.tcl: 
+Executing commands in /software/DervishTools/products/astrotools-5625/etc/astrotoolsStartup.tcl
+
+Executing commands in /software/products/DervishTools-trunk/des/etc/init.tcl: 
+
+Loading script in DES_DIR/etc
+Engineering and less common commands:
+   offset                     Position of star relative to N4 CCD center
+   boreset [ccd-id]           Position of star relative to boresight
+                                 Default ccd-id is S4
+   tim     <expnum> [maxoff]  Compute TELRA, TELDEC offset of image center
+   focus                      Measure a focus sequence
+   nick      <expnum>         Estimate 5-sigma limiting mag
+   seeing                     Measure a single star
+
+Useful commands:
+   data                       cd to DECam data directory
+   inventory [n]              List frames from n days ago (default 0)
+      inv      [n]            (abbreviation for above)
+      invPrint [n]            (Print to file)
+   load    <expnum> [ccd-id]  Display one CCD (defaut is S4)
+   bigload <expnum>           Display mosaic of all CCDs
+   center  <expnum> [maxoff]  Compute RA, DEC, offset of image center
+                                (default maxoff is 1024 pix)
+   pdu       <expnum>         List PDU header (type q to quit)
+   seeingall <expnum>         Measure mean seeing for an exposure
+   psc       <expnum> <cat>   Measure seeing, clouds, sky, pointing
+                                (takes a while to run)
+   noiseCheck <expnum>        Check for electronic noise in overscan
+       (In all of above, if expnum is blank, use most recent)
+   ned                        Look up a galaxy in NED
+   simbad                     Look up a star in SIMBAD
+   skyview                    Look up a field in skyview
+   ephem                      Print out sunset, twilight, moon times
+   standards <UT>             (DES only) Find 3 standards to observe at UT
+                                (be sure to use UT, not local time!)
+   pointing [--help]          Display DES footprint progress.
+   flatCheck [n]              Check of dome flats from n days ago (default 0)
+   commands                   Print this message
+You are logged into desi1
+You are now in the directory /home/msdos/pd_scripts
+
+Error: Can't decode file  tileid
+Error: can't read "tileid": no such variable
+Error: can't read "tileid": no such variable
+
+Loading script in DESI_DIR/etc
+Engineering and less common commands:

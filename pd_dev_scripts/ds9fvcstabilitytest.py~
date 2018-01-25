@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+# argument is the cvs file that lists the exposures in a fvc_stability test
+# display the first one and the output of all the red files
+
+import numpy as np
+import matplotlib.pyplot as plt
+import sys,os,time
+import subprocess
+import re
+
+data_dir = "/data/fvc/"
+
+filelist = sys.argv[1]
+
+flist = []
+with open(filelist, 'r') as fcsv:
+    for aline in fcsv:
+        if re.search('red', aline) != None:
+            flist.append(aline)
+
+clist = ['green','red','blue','cyan','magenta','yellow','black','white'] 
+
+for idx in range(len(flist)):
+    filename = flist[idx]
+    if idx == 0:
+        imfilename = re.sub('red', 'fits', filename, count=1)
+        os.system("scp msdos@desifvc.kpno.noao.edu:%s ." % (data_dir+'/'+imfilename))
+    os.system("scp msdos@desifvc.kpno.noao.edu:%s ." % (data_dir+'/'+filename))
+    data = np.genfromtxt(redfilename, usecols=(0,1,2))
+    outf = open(regionfile, 'w')
+    cval = clist[idx]
+    outf.write('global color='+cval'+\n')
+    
+    
+    
